@@ -56,8 +56,8 @@ vec4 window_shader() {
     block_pos.x = int(texcoord.x) % block_size;
     block_pos.y = int(texcoord.y) % block_size;
     
-    // Current block total brightness
-    float block_brightness = 0;
+    // Current block total color
+    vec3 block_color = vec3(0,0,0);
     
     // We will iterate over all the pixels in the block 
     // and save it to this variable
@@ -67,10 +67,12 @@ vec4 window_shader() {
         for (int x = 0; x < block_size; x += 1)
         {
             // Apply default post processing picom things and
-            // add brightness after.
+            // add color values after.
             pixel = texelFetch(tex, ivec2(texcoord.x+x-block_pos.x,texcoord.y+y-block_pos.y), 0);
             pixel = default_post_processing(pixel);
-            block_brightness += (pixel.x + pixel.y + pixel.z) / 3;
+            block_color.x += pixel.x;
+            block_color.y += pixel.y;
+            block_color.z += pixel.z;
 
             // If we are on the current pixel, save the alpha value
             if (x == 0 && y == 0)
@@ -79,14 +81,22 @@ vec4 window_shader() {
             }
         }
     }
-    // Normalize block brightness and quantify it
-    block_brightness = block_brightness/float(block_size*block_size);
-    block_brightness = round(block_brightness*bit_depth);
+    // Normalize block colors and quantify them
+    block_color.x = block_color.x/float(block_size*block_size);
+    block_color.x = round(block_color.x*bit_depth);
 
-    // Get the current pixel brightness according to our dither patterns
-    float pixel_brightness = dither[int(block_brightness)][block_pos.y][block_pos.x];
+    block_color.y = block_color.y/float(block_size*block_size);
+    block_color.y = round(block_color.y*bit_depth);
+
+    block_color.z = block_color.z/float(block_size*block_size);
+    block_color.z = round(block_color.z*bit_depth);
+
+    // Get the current pixel colors according to our dither patterns
+    block_color.x = dither[int(block_color.x)][block_pos.y][block_pos.x];
+    block_color.y = dither[int(block_color.y)][block_pos.y][block_pos.x];
+    block_color.z = dither[int(block_color.z)][block_pos.y][block_pos.x];
 
     // Set the final value for our pixel
-    pixel = vec4(pixel_brightness, pixel_brightness, pixel_brightness, alpha);
+    pixel = vec4(block_color.x, block_color.y, block_color.z, alpha);
     return pixel;
 }
