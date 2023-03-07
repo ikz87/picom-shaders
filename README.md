@@ -12,7 +12,7 @@ From picom config:
 # See `compton-default-fshader-win.glsl` and `compton-fake-transparency-fshader-win.glsl
 # in the source tree for examples.    
 #    
-window-shader-fg = "<path_to_shader>";
+window-shader-fg = "<absolute_path_to_shader>";
 ``` 
 
 Note that `--no-use-damage` is not necessary, but recommendeed.
