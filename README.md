@@ -18,7 +18,7 @@ window-shader-fg = "<path_to_shader>";
 Note that `--no-use-damage` is not necessary, but recommendeed.
 
 ### How to run different shaders for different windows?
-Append the following to the end of your picom config file:
+Append the following at the end of your picom config file:
 ```
 window-shader-fg-rule = [
   "<absolute_path_to_shader>:class_g = '<window_class>'",
