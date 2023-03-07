@@ -29,4 +29,5 @@ Add as many rules as you want.
 
 
 Shaders will only work with `glx` backend.
+
 May or may not add more fun shaders.
