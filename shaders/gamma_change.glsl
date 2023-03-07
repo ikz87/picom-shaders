@@ -1,7 +1,10 @@
 #version 330
 
-// Changes brightness of windows
-float brightness_level = 0.5; // Value between 0.0 and 1.0. Change to your liking
+// Changes gamma of windows
+float gamma = 0.7; // Use values higher than 0. Change to your liking
+                   
+
+float inv_gamma = 1/gamma;
 
 in vec2 texcoord;             // texture coordinate of the fragment
 
@@ -20,9 +23,9 @@ vec4 window_shader() {
 
     c = default_post_processing(c);
 
-    // Multipply all color values with brightness_level
-    c.x *= brightness_level;
-    c.y *= brightness_level;
-    c.z *= brightness_level;
+    // Apply power law transform
+    c.x = pow(c.x, inv_gamma);
+    c.y = pow(c.y, inv_gamma);
+    c.z = pow(c.z, inv_gamma);
     return c;
 }

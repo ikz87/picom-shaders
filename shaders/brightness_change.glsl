@@ -20,7 +20,7 @@ vec4 window_shader() {
 
     c = default_post_processing(c);
 
-    // Multipply all color values with brightness 
+    // Multipply all color values with brightness_level
     c.x *= brightness_level;
     c.y *= brightness_level;
     c.z *= brightness_level;
