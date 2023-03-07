@@ -25,6 +25,8 @@ window-shader-fg-rule = [
 ];
 ```
 Then the shader at `<absolute_path_to_shader>` will be applied to all windows with class `<window_class>`.
+Add as many rules as you want.
 
 
+Shaders will only work with `glx` backend.
 May or may not add more fun shaders.
