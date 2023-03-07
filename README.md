@@ -1,5 +1,5 @@
 # Picom shaders
-## A list of GLSL shaders meant to be use alongside the picom compositor.
+## A list of GLSL shaders meant to be used alongside the picom compositor.
 
 ### How do I run these?
 From the command line:
