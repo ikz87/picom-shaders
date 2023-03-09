@@ -2,6 +2,7 @@
 #define PI 3.1415926538
 
 // Works best with fullscreen windows
+// Made this to play retro games the way god intended
 
 uniform float sc_freq = 0.2; // Frequency for the scanlines
 uniform float sc_intensity = 0.35; // Intensity of the scanline effect
@@ -40,6 +41,7 @@ vec4 darken_color(vec4 color, vec2 coords)
         return color;
     }
 
+
     // Get how far the coords are from the center
     vec2 distances_from_center = middle - coords;
     float abs_distance = sqrt(pow(distances_from_center.x, 2) +
@@ -71,16 +73,14 @@ ivec2 curve_coords(vec2 coords)
 vec4 get_pixel(vec2 coords)
 {
     ivec2 curved_coords = curve_coords(coords);
-    if (curved_coords.x > window_size.x || curved_coords.y > window_size.y ||
-        curved_coords.x < 0 || curved_coords.y < 0)
+    // If pixel is at the edge of the window, return a completely black color
+    if (curved_coords.x >=window_size.x-1 || curved_coords.y >=window_size.y-1 || 
+        curved_coords.x <=0 || curved_coords.y <=0)
     {
         return vec4(0, 0, 0, 1);
     }
-    else
-    {
-        vec4 color = texelFetch(tex, curved_coords, 0);
-        return (color);
-    }
+    vec4 color = texelFetch(tex, curved_coords, 0);
+    return default_post_processing(color);
 }
 
 
