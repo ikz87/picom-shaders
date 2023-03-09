@@ -1,12 +1,14 @@
 #version 430
 #define PI 3.1415926538
 
+// Works best with fullscreen windows
+
 uniform float sc_freq = 0.2; // Frequency for the scanlines
 uniform float sc_intensity = 0.35; // Intensity of the scanline effect
 uniform bool grid = false; // Wether to also apply scanlines to x axis or not
 uniform int downscale_factor = 2; // How many pixels of the window
                                   // make an actual "pixel" (or block)
-uniform vec2 curvature = vec2(2.3, 2.0); // How much the window should "curve" 
+uniform vec2 curvature = vec2(2.4, 2.1); // How much the window should "curve" 
                                          // along each axis
 uniform int distortion_offset = 2; // pixel offset for red/blue distortion
 uniform float shadow_cutoff = 0.98; // How "early" the shadow starts affecting 
