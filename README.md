@@ -30,4 +30,6 @@ Add as many rules as you want.
 
 Shaders will only work with `glx` backend.
 
+Please beware that this is my very first time writing GLSL code, don't expect top tier code performance wise. Suggestions are welcome
+
 May or may not add more fun shaders.
