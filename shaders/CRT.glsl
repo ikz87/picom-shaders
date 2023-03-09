@@ -63,6 +63,10 @@ vec4 darken_color(vec4 color, vec2 coords)
 // Apply curvature transform to given coordinates
 ivec2 curve_coords(vec2 coords)
 {
+    // Got the formula with some fun math :)
+    // It maps points from a section of a circumference to points on a 
+    // tangent line that shares its center with the center of the circumference
+    // section
     ivec2 curved_coords = ivec2(round(asin((coords.xy - middle.xy)/radius)*radius + middle.xy));
     return curved_coords;
 }
