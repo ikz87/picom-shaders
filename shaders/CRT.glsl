@@ -1,29 +1,50 @@
 #version 430
 #define PI 3.1415926538
+uniform float opacity;
+uniform float time;
 
 // Works best with fullscreen windows
 // Made this to play retro games the way god intended
 
 uniform float sc_freq = 0.2; // Frequency for the scanlines
-uniform float sc_intensity = 0.35; // Intensity of the scanline effect
+
+uniform float sc_intensity = 0.6; // Intensity of the scanline effect
+
 uniform bool grid = false; // Wether to also apply scanlines to x axis or not
-uniform int downscale_factor = 2; // How many pixels of the window
+
+uniform int distortion_offset = 2; // Pixel offset for red/blue distortion
+
+uniform int downscale_factor = 1; // How many pixels of the window
                                   // make an actual "pixel" (or block)
-uniform vec2 curvature = vec2(2.4, 2.1); // How much the window should "curve" 
-                                         // along each axis
-uniform int distortion_offset = 2; // pixel offset for red/blue distortion
-uniform float shadow_cutoff = 0.98; // How "early" the shadow starts affecting 
+
+uniform float sph_distance = 500; // Distance from the theoretical sphere 
+                                  // we use for our curvature transform
+
+uniform float curvature = 1.5; // How much the window should "curve" 
+
+uniform float shadow_cutoff = 1; // How "early" the shadow starts affecting 
                                  // pixels close to the edges
                                  // I'd keep this value very close to 1
+
 uniform int shadow_intensity = 1; // Intensity level of the shadow effect (from 1 to 5)
+
+vec4 outside_color = vec4(0 ,0 ,0, opacity); // Color for the outside of the window
+
+float flash_speed = 1.5; // Speed of flashing effect, set to 0 to deactivate
+                         //
+float flash_intensity = 0.8; // Speed of flashing effect, set to 0 to deactivate
+
+
+// You can play with different values for all the variables above
 
 in vec2 texcoord;             // texture coordinate of the fragment
 
 uniform sampler2D tex;        // texture of the window
 
 ivec2 window_size = textureSize(tex, 0);
-ivec2 middle = ivec2(window_size.x/2, window_size.y/2);
-vec2 radius = vec2(window_size.x/curvature.x, window_size.y/curvature.y);
+ivec2 window_center = ivec2(window_size.x/2, window_size.y/2);
+float radius = (window_size.x/curvature);
+int flash = int(round(flash_speed*time/10)) % window_size.y;
 
 // Default window post-processing:
 // 1) invert color
@@ -41,34 +62,48 @@ vec4 darken_color(vec4 color, vec2 coords)
         return color;
     }
 
-
     // Get how far the coords are from the center
-    vec2 distances_from_center = middle - coords;
-    float abs_distance = sqrt(pow(distances_from_center.x, 2) +
-                              pow(distances_from_center.y, 2));
+    vec2 distances_from_center = window_center - coords;
 
-    // Darken pixels polinomically (there is probs a better way to do this)
-    float brightness = -pow((abs_distance/middle.x)*shadow_cutoff, (5/shadow_intensity)*2)+1;
-    color.xyz *= brightness;
-
-    // Also darken a bit pixels close to the top and bottom so the effect
-    // doesn't look terrible
-    brightness = -pow((distances_from_center.y/middle.y)*shadow_cutoff, (5/shadow_intensity)*2)+1;
+    // Darken pixels close to the edges of the screen in a polynomial fashion
+    float brightness = 1;
+    brightness *= -pow((distances_from_center.y/window_center.y)*shadow_cutoff, 
+                       (5/shadow_intensity)*2)+1;
+    brightness *= -pow((distances_from_center.x/window_center.x)*shadow_cutoff, 
+                       (5/shadow_intensity)*2)+1;
     color.xyz *= brightness;
 
     return color;
 }
 
-
-// Apply curvature transform to given coordinates
-ivec2 curve_coords(vec2 coords)
+// Curves the pixel coordinates
+ivec2 curve_coords_spheric(vec2 coords)
 {
-    // Got the formula with some fun math :)
-    // It maps points from a section of a circumference to points on a 
-    // tangent line that shares its center with the center of the circumference
-    // section
-    ivec2 curved_coords = ivec2(round(asin((coords.xy - middle.xy)/radius)*radius + middle.xy));
-    return curved_coords;
+    // Offset coords
+    coords -= window_center;
+    vec2 curved_coords; 
+
+    // For this transform imagine a sphere in a 3d space with the 
+    // window as a 2d plane tangent to it
+    // For simplicity, we center the sphere at 0,0,0
+    
+    // The coordinates of the projection share x and y with our window pixel 
+    // We find Z using the formula for a sphere
+    vec3 projection_coords3d = vec3(coords.x, coords.y, 
+                                    sqrt(pow(radius+sph_distance,2)-
+                                         pow(coords.x,2)-
+                                         pow(coords.y,2)));
+
+    // That vector goes from the center of the sphere to the projection of a pixel
+    // of our window onto the sphere's surface
+    // Let's scale it until it hits our window plane
+    projection_coords3d *= ((radius+sph_distance)/projection_coords3d.z);
+    curved_coords = projection_coords3d.xy;
+
+    // Compensate for starting coords offset
+    curved_coords += window_center;
+
+    return ivec2(curved_coords);
 }
 
 
@@ -76,18 +111,17 @@ ivec2 curve_coords(vec2 coords)
 // downscale changes
 vec4 get_pixel(vec2 coords)
 {
-    ivec2 curved_coords = curve_coords(coords);
     // If pixel is at the edge of the window, return a completely black color
-    if (curved_coords.x >=window_size.x-1 || curved_coords.y >=window_size.y-1 || 
-        curved_coords.x <=0 || curved_coords.y <=0)
+    if (coords.x >=window_size.x-1 || coords.y >=window_size.y-1 || 
+        coords.x <=0 || coords.y <=0)
     {
-        return vec4(0, 0, 0, 1);
+        return outside_color;
     }
-    vec4 color = texelFetch(tex, curved_coords, 0);
+    vec4 color = texelFetch(tex, ivec2(coords), 0);
     return default_post_processing(color);
 }
 
-
+// Gets the color from a downscaled block
 vec4 get_block_color(vec2 coords)
 {
     // If downscale is set to 1, just return a pixel
@@ -118,25 +152,39 @@ vec4 get_block_color(vec2 coords)
 
 // Main shader function
 vec4 window_shader() {
+    
+    // Apply curvature transform to coords
+    vec2 curved_coords = curve_coords_spheric(texcoord);
+
     // Fetch the color
-    vec4 c = get_block_color(texcoord);
+    vec4 c = get_block_color(curved_coords);
     
     // Fetch colors from close pixels to apply color distortion
-    vec4 c_right = get_block_color(vec2(texcoord.x+2, texcoord.y));
-    vec4 c_left = get_block_color(vec2(texcoord.x-2, texcoord.y));
+    vec4 c_right = get_block_color(vec2(curved_coords.x+2, curved_coords.y));
+    vec4 c_left = get_block_color(vec2(curved_coords.x-2, curved_coords.y));
 
     // Mix red and blue colors
     c = vec4(c_left.x, c.y, c_right.z, c.w);
 
-    c.xyz *= sin(2*PI*sc_freq*texcoord.y)/(2/sc_intensity) +
+    // Apply scanlines
+    c.xyz *= sin(2*PI*sc_freq*(texcoord).y)/(2/sc_intensity) +
              1 - sc_intensity/2;
 
+    // Also apply scanlines to x axis if grid is enabled
     if (grid == true)
     {
-        c.xyz *= sin(2*PI*sc_freq*texcoord.x)/(2/sc_intensity) +
+        c.xyz *= sin(2*PI*sc_freq*(texcoord).x)/(2/sc_intensity) +
                  1 - sc_intensity/2;
     }
+    
+    // Apply flash
+    if (curved_coords.y >=flash-100 && curved_coords.y <=flash)
+    {
+       c.xyz *= flash_intensity*(pow(((flash-curved_coords.y)/100)-1,2)
+                                                  + 1/flash_intensity); 
+    }
 
-    c = darken_color(c, curve_coords(texcoord));
+    // Darken pixel
+    c = darken_color(c, curved_coords);
     return (c);
 }
