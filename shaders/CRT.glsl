@@ -10,11 +10,11 @@ uniform float sc_freq = 0.2; // Frequency for the scanlines
 
 uniform float sc_intensity = 0.6; // Intensity of the scanline effect
 
-uniform bool grid = false; // Wether to also apply scanlines to x axis or not
+uniform bool grid = false; // Whether to also apply scanlines to x axis or not
 
 uniform int distortion_offset = 2; // Pixel offset for red/blue distortion
 
-uniform int downscale_factor = 1; // How many pixels of the window
+uniform int downscale_factor = 2; // How many pixels of the window
                                   // make an actual "pixel" (or block)
 
 uniform float sph_distance = 500; // Distance from the theoretical sphere 
@@ -28,11 +28,11 @@ uniform float shadow_cutoff = 1; // How "early" the shadow starts affecting
 
 uniform int shadow_intensity = 1; // Intensity level of the shadow effect (from 1 to 5)
 
-vec4 outside_color = vec4(0 ,0 ,0, opacity*0); // Color for the outside of the window
+vec4 outside_color = vec4(0 ,0 ,0, opacity); // Color for the outside of the window
 
 float flash_speed = 1.5; // Speed of flashing effect, set to 0 to deactivate
-                         //
-float flash_intensity = 0.8; // Speed of flashing effect, set to 0 to deactivate
+                         
+float flash_intensity = 0.8; // Intensity of flashing effect
 
 
 // You can play with different values for all the variables above
