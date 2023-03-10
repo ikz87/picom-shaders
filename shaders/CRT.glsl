@@ -28,7 +28,7 @@ uniform float shadow_cutoff = 1; // How "early" the shadow starts affecting
 
 uniform int shadow_intensity = 1; // Intensity level of the shadow effect (from 1 to 5)
 
-vec4 outside_color = vec4(0 ,0 ,0, opacity); // Color for the outside of the window
+vec4 outside_color = vec4(0 ,0 ,0, opacity*0); // Color for the outside of the window
 
 float flash_speed = 1.5; // Speed of flashing effect, set to 0 to deactivate
                          //
@@ -44,7 +44,7 @@ uniform sampler2D tex;        // texture of the window
 ivec2 window_size = textureSize(tex, 0);
 ivec2 window_center = ivec2(window_size.x/2, window_size.y/2);
 float radius = (window_size.x/curvature);
-int flash = int(round(flash_speed*time/10)) % window_size.y;
+int flash = int(round(flash_speed*time/(10000/window_size.y))) % window_size.y;
 
 // Default window post-processing:
 // 1) invert color
@@ -178,9 +178,9 @@ vec4 window_shader() {
     }
     
     // Apply flash
-    if (curved_coords.y >=flash-100 && curved_coords.y <=flash)
+    if (curved_coords.y >=flash-(window_size.y/10) && curved_coords.y <=flash)
     {
-       c.xyz *= flash_intensity*(pow(((flash-curved_coords.y)/100)-1,2)
+       c.xyz *= flash_intensity*(pow(((flash-curved_coords.y)/(window_size.y/10))-1,2)
                                                   + 1/flash_intensity); 
     }
 
