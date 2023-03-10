@@ -14,7 +14,7 @@ uniform bool grid = false; // Whether to also apply scanlines to x axis or not
 
 uniform int distortion_offset = 2; // Pixel offset for red/blue distortion
 
-uniform int downscale_factor = 2; // How many pixels of the window
+uniform int downscale_factor = 1; // How many pixels of the window
                                   // make an actual "pixel" (or block)
 
 uniform float sph_distance = 500; // Distance from the theoretical sphere 
@@ -30,7 +30,7 @@ uniform int shadow_intensity = 1; // Intensity level of the shadow effect (from 
 
 vec4 outside_color = vec4(0 ,0 ,0, opacity); // Color for the outside of the window
 
-float flash_speed = 1.5; // Speed of flashing effect, set to 0 to deactivate
+float flash_speed = 2; // Speed of flashing effect, set to 0 to deactivate
                          
 float flash_intensity = 0.8; // Intensity of flashing effect
 
@@ -76,7 +76,8 @@ vec4 darken_color(vec4 color, vec2 coords)
     return color;
 }
 
-// Curves the pixel coordinates
+// Applies a transformation to our window pixels to simulate
+// a curved screen
 ivec2 curve_coords_spheric(vec2 coords)
 {
     // Offset coords
@@ -84,9 +85,8 @@ ivec2 curve_coords_spheric(vec2 coords)
     vec2 curved_coords; 
 
     // For this transform imagine a sphere in a 3d space with the 
-    // window as a 2d plane tangent to it
+    // window as a 2d plane tangent to that sphere
     // For simplicity, we center the sphere at 0,0,0
-    
     // The coordinates of the projection share x and y with our window pixel 
     // We find Z using the formula for a sphere
     vec3 projection_coords3d = vec3(coords.x, coords.y, 
