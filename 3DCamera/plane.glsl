@@ -18,7 +18,8 @@ struct pinhole_camera
 
     vec3 translations; // Translations in pixels along each axis
 
-    // TODO: stretching
+    vec3 deformations; // Deforms the camera. Higher values on each axis
+                       // means the window will be squashed in that axis
 
     // ---------------------------------------------------------------// 
     
@@ -52,8 +53,9 @@ float window_diagonal = length(window_size); // Diagonal of the window
 
 pinhole_camera camera = 
 pinhole_camera(-window_size.y/2,   // Focal offset
-               vec3(0), // Rotations
+               vec3(0,0,0), // Rotations
                vec3(0), // Translations
+               vec3(1,1,1), // Deformations
                // Leave the rest as 0
                vec3(0),
                vec3(0),
@@ -68,6 +70,7 @@ pinhole_camera bobbing =
 pinhole_camera(-window_size.y/2,
                vec3(0,0,0),
                vec3(0,cos(time_cyclic*PI)*window_size.y/16,-window_size.y/4),
+               vec3(1,1,1),
                vec3(0),
                vec3(0),
                vec3(0),
@@ -82,6 +85,19 @@ pinhole_camera(-window_diagonal,
                vec3(cos(time_cyclic*PI)*window_diagonal,
                    0,
                    sin(time_cyclic*PI)*window_diagonal),
+               vec3(1,1,1),
+               vec3(0),
+               vec3(0),
+               vec3(0),
+               vec3(0),
+               vec3(0));
+
+// Rotate camera around its center
+pinhole_camera rotate_around_itself = 
+pinhole_camera(-window_diagonal,
+               vec3(0,-time_cyclic*PI-PI/2,0),
+               vec3(0,0,-window_diagonal),
+               vec3(1,1,1),
                vec3(0),
                vec3(0),
                vec3(0),
@@ -111,10 +127,10 @@ pinhole_camera setup_camera(pinhole_camera camera)
 
     // Apply rotations 
     // We initialize our vector basis as normalized vectors
-    // in each axis
-    camera.base_x = vec3(1, 0, 0);
-    camera.base_y = vec3(0, 1, 0);
-    camera.base_z = vec3(0, 0, 1);
+    // in each axis * our deformations vector
+    camera.base_x = vec3(camera.deformations.x, 0, 0);
+    camera.base_y = vec3(0, camera.deformations.y, 0);
+    camera.base_z = vec3(0, 0, camera.deformations.z);
 
 
     // Then we rotate them around following our rotations vector:
