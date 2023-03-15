@@ -77,9 +77,10 @@ pinhole_camera(-window_size.y/2,
                vec3(0),
                vec3(0));
 
-// Rotates camera around the window
+// Rotates camera around the origin
 // Makes the window rotate around the Y axis from the camera's POV
-pinhole_camera rotate_around_plane = 
+// (if the window is centered)
+pinhole_camera rotate_around_origin = 
 pinhole_camera(-window_diagonal,
                vec3(0,-time_cyclic*PI-PI/2,0),
                vec3(cos(time_cyclic*PI)*window_diagonal,
@@ -105,7 +106,7 @@ pinhole_camera(-window_diagonal,
                vec3(0));
 
 // Here you can select the preset to use
-pinhole_camera window_cam = rotate_around_plane;
+pinhole_camera window_cam = rotate_around_origin;
 
 
 
