@@ -201,7 +201,7 @@ vec4 get_pixel_from_projection(float t, int face, pinhole_camera camera, vec3 fo
     vec3 intersection = focal_vector * t + camera.focal_point;
     
 
-    // Save x and y coordinates and add back our initial offset 
+    // Save a the necessary coordinates and add back offset
     vec2 cam_coords;
     switch (face) 
     {
@@ -260,7 +260,7 @@ vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera)
     // Get the vector going from the focal point to the pixel in 3d sapace
     vec3 focal_vector = pixel_3dposition - camera.focal_point;
 
-    // We need 6 planes, one for each face of the cube, they all follow the plane EQ
+    // We need 2 planes, one for each axis of the cross, they all follow the plane EQ
     // ax + by + cz + d
     float a[] = {0,1};
     float b[] = {0,0};
