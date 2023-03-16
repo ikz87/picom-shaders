@@ -30,7 +30,7 @@ uniform int shadow_intensity = 1; // Intensity level of the shadow effect (from 
 
 vec4 outside_color = vec4(0 ,0 ,0, opacity); // Color for the outside of the window
 
-float flash_speed = 2; // Speed of flashing effect, set to 0 to deactivate
+float flash_speed = 0; // Speed of flashing effect, set to 0 to deactivate
                          
 float flash_intensity = 0.8; // Intensity of flashing effect
 
