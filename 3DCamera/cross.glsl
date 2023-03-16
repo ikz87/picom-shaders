@@ -148,6 +148,10 @@ pinhole_camera setup_camera(pinhole_camera camera)
 
     // Rotations for base_x:
     tmp = camera.base_x;
+    // X axis:
+    tmp.y =  camera.base_x.y * cosx - camera.base_x.z * sinx;
+    tmp.z =  camera.base_x.y * sinx + camera.base_x.z * cosx;
+    camera.base_x = tmp;
     // Y axis:
     tmp.x =  camera.base_x.x * cosy + camera.base_x.z * siny;
     tmp.z = -camera.base_x.x * siny + camera.base_x.z * cosy;
@@ -163,6 +167,10 @@ pinhole_camera setup_camera(pinhole_camera camera)
     tmp.y =  camera.base_y.y * cosx - camera.base_y.z * sinx;
     tmp.z =  camera.base_y.y * sinx + camera.base_y.z * cosx;
     camera.base_y = tmp;
+    // Y axis:
+    tmp.x =  camera.base_y.x * cosy + camera.base_y.z * siny;
+    tmp.z = -camera.base_y.x * siny + camera.base_y.z * cosy;
+    camera.base_y = tmp;
     // Z axis:
     tmp.x =  camera.base_y.x * cosz - camera.base_y.y * sinz;
     tmp.y =  camera.base_y.x * sinz + camera.base_y.y * cosz;
@@ -170,13 +178,17 @@ pinhole_camera setup_camera(pinhole_camera camera)
 
     // Rotations for base_z: 
     tmp = camera.base_z;
+    // X axis:
+    tmp.y =  camera.base_z.y * cosx - camera.base_z.z * sinx;
+    tmp.z =  camera.base_z.y * sinx + camera.base_z.z * cosx;
+    camera.base_z = tmp;
     // Y axis:
     tmp.x =  camera.base_z.x * cosy + camera.base_z.z * siny;
     tmp.z = -camera.base_z.x * siny + camera.base_z.z * cosy;
     camera.base_z = tmp;
-    // X axis:
-    tmp.y =  camera.base_z.y * cosx - camera.base_z.z * sinx;
-    tmp.z =  camera.base_z.y * sinx + camera.base_z.z * cosx;
+    // Z axis:
+    tmp.x =  camera.base_z.x * cosz - camera.base_z.y * sinz;
+    tmp.y =  camera.base_z.x * sinz + camera.base_z.y * cosz;
     camera.base_z = tmp;
 
     // Now that we have our transformed 3d orthonormal base 

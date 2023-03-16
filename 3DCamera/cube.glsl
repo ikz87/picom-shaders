@@ -42,6 +42,7 @@ uniform float time; // Time in miliseconds.
 float time_cyclic = mod(time/10000,2); // Like time, but in seconds and resets to 
                                        // 0 when it hits 2. Useful for using it in 
                                        // periodic functions like cos and sine
+
 // Time variables can be used to change transformations over time
 
 
@@ -82,9 +83,9 @@ pinhole_camera(-window_size.y/2,
 // (if the window is centered)
 pinhole_camera rotate_around_origin = 
 pinhole_camera(-window_diagonal,
-               vec3(0,-time_cyclic*PI-PI/2,0),
+               vec3(PI/8*sin(2*time_cyclic*PI),-time_cyclic*PI-PI/2,0),
                vec3(cos(time_cyclic*PI)*window_diagonal,
-                    sin(time_cyclic*PI*2)*window_diagonal/2,
+                    window_diagonal/2*sin(2*time_cyclic*PI),
                     sin(time_cyclic*PI)*window_diagonal),
                vec3(1,1,1),
                vec3(0),
@@ -149,6 +150,10 @@ pinhole_camera setup_camera(pinhole_camera camera)
 
     // Rotations for base_x:
     tmp = camera.base_x;
+    // X axis:
+    tmp.y =  camera.base_x.y * cosx - camera.base_x.z * sinx;
+    tmp.z =  camera.base_x.y * sinx + camera.base_x.z * cosx;
+    camera.base_x = tmp;
     // Y axis:
     tmp.x =  camera.base_x.x * cosy + camera.base_x.z * siny;
     tmp.z = -camera.base_x.x * siny + camera.base_x.z * cosy;
@@ -164,6 +169,10 @@ pinhole_camera setup_camera(pinhole_camera camera)
     tmp.y =  camera.base_y.y * cosx - camera.base_y.z * sinx;
     tmp.z =  camera.base_y.y * sinx + camera.base_y.z * cosx;
     camera.base_y = tmp;
+    // Y axis:
+    tmp.x =  camera.base_y.x * cosy + camera.base_y.z * siny;
+    tmp.z = -camera.base_y.x * siny + camera.base_y.z * cosy;
+    camera.base_y = tmp;
     // Z axis:
     tmp.x =  camera.base_y.x * cosz - camera.base_y.y * sinz;
     tmp.y =  camera.base_y.x * sinz + camera.base_y.y * cosz;
@@ -171,13 +180,17 @@ pinhole_camera setup_camera(pinhole_camera camera)
 
     // Rotations for base_z: 
     tmp = camera.base_z;
+    // X axis:
+    tmp.y =  camera.base_z.y * cosx - camera.base_z.z * sinx;
+    tmp.z =  camera.base_z.y * sinx + camera.base_z.z * cosx;
+    camera.base_z = tmp;
     // Y axis:
     tmp.x =  camera.base_z.x * cosy + camera.base_z.z * siny;
     tmp.z = -camera.base_z.x * siny + camera.base_z.z * cosy;
     camera.base_z = tmp;
-    // X axis:
-    tmp.y =  camera.base_z.y * cosx - camera.base_z.z * sinx;
-    tmp.z =  camera.base_z.y * sinx + camera.base_z.z * cosx;
+    // Z axis:
+    tmp.x =  camera.base_z.x * cosz - camera.base_z.y * sinz;
+    tmp.y =  camera.base_z.x * sinz + camera.base_z.y * cosz;
     camera.base_z = tmp;
 
     // Now that we have our transformed 3d orthonormal base 
@@ -247,6 +260,7 @@ vec4 get_pixel_from_projection(float t, int face, pinhole_camera camera, vec3 fo
 
     // Fetch the pixel
     vec4 pixel = texelFetch(tex, ivec2(cam_coords), 0);
+
     return pixel;
 }
 
@@ -255,7 +269,6 @@ vec4 get_pixel_from_projection(float t, int face, pinhole_camera camera, vec3 fo
 // Not sure how it works honestly lol
 vec4 alpha_composite(vec4 color1, vec4 color2)
 {
-
     float ar = color1.w + color2.w - (color1.w * color2.w);
     float asr = color2.w / ar;
     float a1 = 1 - asr;
@@ -265,7 +278,6 @@ vec4 alpha_composite(vec4 color1, vec4 color2)
     outcolor.xyz = color1.xyz * a1 + color2.xyz * a2 + color2.xyz * ab;
     outcolor.w = ar;
     return outcolor;
-
 }
 
 // Gets a pixel through the camera using coords as coordinates in
