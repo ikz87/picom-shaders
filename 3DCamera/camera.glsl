@@ -1,6 +1,7 @@
 
 #version 330
 #define PI 3.14159265
+// This shader won't work with picom, it's just a template
 
 // These shaders work by using a pinhole camera and raycasting
 // The window 3d objects will always be (somewhat) centered at (0, 0, 0)
