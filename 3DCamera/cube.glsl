@@ -49,6 +49,8 @@ float time_cyclic = mod(time/10000,2); // Like time, but in seconds and resets t
 ivec2 window_size = textureSize(tex, 0); // Size of the window
 
 float window_diagonal = length(window_size); // Diagonal of the window
+                                             
+int wss = min(window_size.x, window_size.y); // Window smallest side, useful when squaring windows
 // Try to keep focal offset and translations proportional to window_size components 
 // or window_diagonal as you see fit
 
@@ -82,11 +84,11 @@ pinhole_camera(-window_size.y/2,
 // Makes the window rotate around the Y axis from the camera's POV
 // (if the window is centered)
 pinhole_camera rotate_around_origin = 
-pinhole_camera(-window_diagonal,
-               vec3(PI/8*sin(2*time_cyclic*PI),-time_cyclic*PI-PI/2,0),
-               vec3(cos(time_cyclic*PI)*window_diagonal,
-                    window_diagonal/2*sin(2*time_cyclic*PI),
-                    sin(time_cyclic*PI)*window_diagonal),
+pinhole_camera(-wss,
+               vec3(PI/6*sin(2*time_cyclic*PI),-time_cyclic*PI-PI/2,0),
+               vec3(cos(time_cyclic*PI)*wss,
+                    wss/2*sin(2*time_cyclic*PI),
+                    sin(time_cyclic*PI)*wss),
                vec3(1,1,1),
                vec3(0),
                vec3(0),
@@ -96,9 +98,9 @@ pinhole_camera(-window_diagonal,
 
 // Rotate camera around its center
 pinhole_camera rotate_around_itself = 
-pinhole_camera(-window_diagonal,
+pinhole_camera(-wss,
                vec3(0,-time_cyclic*PI-PI/2,0),
-               vec3(0,0,-window_diagonal),
+               vec3(0,0,-wss),
                vec3(1,1,1),
                vec3(0),
                vec3(0),
@@ -112,7 +114,6 @@ pinhole_camera window_cam = rotate_around_origin;
 
 
 ivec2 window_center = ivec2(window_size.x/2, window_size.y/2); 
-int wss = min(window_size.x, window_size.y);
 
 // Default window post-processing:
 // 1) invert color
@@ -216,6 +217,7 @@ vec4 get_pixel_from_projection(float t, int face, pinhole_camera camera, vec3 fo
     
 
     // Save necessary coordinates
+    // (different cube faces need different coords)
     vec2 cam_coords;
     switch (face) 
     {
@@ -309,6 +311,7 @@ vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera)
     float d[] = {-wss/2.0,wss/2.0,
                  -wss/2.0,wss/2.0,
                  -wss/2.0,wss/2.0};
+
     // Then there's a line going from our focal point to each of the planes 
     // which we can describe as:
     // x(t) = focal_point.x + focal_vector.x * t
@@ -353,6 +356,7 @@ vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera)
                                                           int(t[i].y),
                                                           camera,
                                                           focal_vector);
+        // Only blend non fully transparent pixels
         if (projection_pixel.w > 0.0)
         {
             // Blend the pixel using alpha
