@@ -1,7 +1,5 @@
-<h1 align="center">[Picom shaders]</h1>
-<h3 align="center">A list of GLSL shaders for picom</h3>
 <img src="https://user-images.githubusercontent.com/98569017/229314080-17ed36c5-d13f-441d-a862-e8e18f905fca.gif" width=100%>
-
+<h3 align="center">A list of GLSL shaders for picom</h3>
 <p align="center">Made for fun :)</p>
 
 <table align="center">
