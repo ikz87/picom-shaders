@@ -14,7 +14,7 @@ uniform bool grid = false; // Whether to also apply scanlines to x axis or not
 
 uniform int distortion_offset = 2; // Pixel offset for red/blue distortion
 
-uniform int downscale_factor = 1; // How many pixels of the window
+uniform int downscale_factor = 2; // How many pixels of the window
                                   // make an actual "pixel" (or block)
 
 uniform float sph_distance = 500; // Distance from the theoretical sphere 
