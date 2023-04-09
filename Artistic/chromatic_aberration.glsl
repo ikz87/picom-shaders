@@ -3,7 +3,7 @@
 
 // Offsets in pixels for each color
 vec2 uvr = vec2(3,0);
-vec2 uvg = vec2(0,sqrt(pow(6,2)+pow(3,2)));
+vec2 uvg = vec2(0,3);
 vec2 uvb = vec2(-3,0);
 
 // Scaling of the effect. This makes the effect stronger
