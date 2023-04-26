@@ -9,7 +9,7 @@ uniform float cutoff = 0.55; // Brightness value that should be considered
 uniform float light_brightness = 1; // Scaling value for the brightness of the
                                     // bloom effect
 
-uniform float base_brightness = 1.2; // Scaling value for the brigghtness of the bright
+uniform float base_brightness = 1.2; // Scaling value for the brightness of the bright
                                      // pixels
 
 // Here are some kerneles you can use for the gaussian blur
