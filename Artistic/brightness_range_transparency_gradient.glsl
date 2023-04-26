@@ -1,8 +1,4 @@
 #version 330
-in vec2 texcoord;             // texture coordinate of the fragment
-uniform sampler2D tex;        // texture of the window
-
-// tweak the following variablee and functions for your needs:
 // brightness value for the maximum transparency
 uniform float median_brightness = 1;
 // maximum brightness derivation from the median_brightness
@@ -13,7 +9,12 @@ uniform float max_derivation = 0.2;
 uniform float min_opacity = 0.9;
 // exponent for the gradient (e.g. 1 for linear, 2 for quadratic, etc)
 uniform int power = 2;
+// tweak the above variables and functions for your needs
 
+// texture coordinate of the fragment
+in vec2 texcoord;
+// texture of the window
+uniform sampler2D tex;
 // Default window post-processing:
 // 1) invert color
 // 2) opacity / transparency
