@@ -1,8 +1,4 @@
 #version 330
-in vec2 texcoord;             // texture coordinate of the fragment
-uniform sampler2D tex;        // texture of the window
-
-// tweak the following variablee and functions for your needs:
 // rgb value for the maximum transparency
 uniform vec3 median_color = vec3(1);
 // maximum derivation from the median_color of each color channel (rgb)
@@ -20,7 +16,12 @@ float get_float (vec3 c) {
     // mean
     // return (v.r + v.g + v.b)/3;
 }
+// tweak the above variables and functions for your needs
 
+// texture coordinate of the fragment
+in vec2 texcoord;
+// texture of the window
+uniform sampler2D tex;
 // Default window post-processing:
 // 1) invert color
 // 2) opacity / transparency
