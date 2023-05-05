@@ -63,7 +63,7 @@ vec4 darken_color(vec4 color, vec2 coords)
     }
 
     // Get how far the coords are from the center
-    vec2 distances_from_center = window_center - coords;
+    vec2 distances_from_center = abs(window_center - coords);
 
     // Darken pixels close to the edges of the screen in a polynomial fashion
     float brightness = 1;
