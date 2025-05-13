@@ -12,9 +12,6 @@ in vec2 texcoord;             // texture coordinate of the fragment
 uniform sampler2D tex;        // texture of the window
 
 uniform float time; // Time in miliseconds.
-float time_cyclic = mod(4*time/10000,2); // Like time, but in seconds and resets to 
-                                       // 0 when it hits 2. Useful for using it in 
-                                       // periodic functions like cos and sine
 ivec2 window_size = textureSize(tex, 0); // Size of the window
 ivec2 window_center = ivec2(window_size.x/2, window_size.y/2);
 uniform float icon_factor = 12.0;
@@ -63,66 +60,10 @@ struct pinhole_camera
     vec3 focal_point;
 };
 
-pinhole_camera camera = 
-pinhole_camera(-window_size.y/2,   // Focal offset
-               vec3(0,0,0), // Rotations
-               vec3(0,0,0), // Translations
-               vec3(1,1,1), // Deformations
-               // Leave the rest as 0
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0));
 
-// Here are some presets you can use
-
-// Moves the camera up and down
-pinhole_camera bobbing = 
-pinhole_camera(-window_size.y/2,
-               vec3(0,0,0),
-               vec3(0,cos(time_cyclic*PI)*window_size.y/16,-window_size.y/4),
-               vec3(1,1,1),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0));
-
-// Rotates camera around the origin
-// Makes the window rotate around the Y axis from the camera's POV
-// (if the window is centered)
-float cam_offset = window_size.y*3;
-pinhole_camera rotate_around_origin = 
-pinhole_camera(-cam_offset,
-               vec3(0,-time_cyclic*PI-PI/2,0),
-               vec3(cos(time_cyclic*PI)*window_size.y*0.4,
-                    0,
-                    sin(time_cyclic*PI)*window_size.y*0.4),
-               vec3(1,1,1),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0));
-
-// Rotate camera around its center
-pinhole_camera rotate_around_itself = 
-pinhole_camera(-wss,
-               vec3(0,-time_cyclic*PI-PI/2,0),
-               vec3(0,0,-wss),
-               vec3(1,1,1),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0),
-               vec3(0));
-
-// Here you can select the preset to use
-pinhole_camera window_cam = rotate_around_origin;
 // Sets up a camera by applying transformations and 
 // calculating xyz vector basis 
-pinhole_camera setup_camera(pinhole_camera camera)
+pinhole_camera setup_camera(pinhole_camera camera, float ppa)
 {
     // Apply translations
     camera.center_point += camera.translations;
@@ -299,7 +240,7 @@ vec4 crt_shader(vec2 coords)
 }
 
 // Gets a pixel from the end of a ray projected to an axis
-vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector)
+vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector, float ppa)
 {
     // If the point we end up in is behind our camera, don't "render" it
     if (t < 1)
@@ -314,19 +255,18 @@ vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector
 
     // Save necessary coordinates
     vec2 cam_coords = intersection.xy;
-    
-    cam_coords.xy += window_center.xy;
+    float cam_coords_length = length(cam_coords);
 
-    // If pixel is outside of our window region
-    // return a dimmed pixel with the window's border color
-    if (cam_coords.x >=window_size.x-1 || 
-        cam_coords.y >=window_size.y-1 ||
-        cam_coords.x <=0 || cam_coords.y <=0)
+    // If pixel is outside of our icon region
+    // return an empty pixel
+    float local_icon_radius = icon_radius - 50 + 60 * ppa;
+    if (cam_coords_length > local_icon_radius)
     {
-        return BASE_COLOR;
+        return vec4(0);
     }
 
     // Fetch the pixel
+    cam_coords += window_center;
     vec4 pixel = texelFetch(tex, ivec2(cam_coords), 0);
     pixel = crt_shader(cam_coords);
     pixel = apply_flash_effect(pixel, cam_coords);
@@ -335,6 +275,7 @@ vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector
         return BASE_COLOR;
     }
 
+    pixel.w = 0.9;
     return pixel;
 }
 
@@ -356,7 +297,7 @@ vec4 alpha_composite(vec4 color1, vec4 color2)
 
 // Gets a pixel through the camera using coords as coordinates in
 // the camera plane
-vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera)
+vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera, float ppa)
 {
     // Offset coords
     coords -= window_center;
@@ -443,7 +384,7 @@ vec4 get_pixel_through_camera(vec2 coords, pinhole_camera camera)
         // We get the pixel through projection
         vec4 projection_pixel = get_pixel_from_projection(t[i].x, 
                                                           camera,
-                                                          focal_vector);
+                                                          focal_vector, ppa);
         if (projection_pixel.w > 0.0)
         {
             // Blend the pixel using alpha
@@ -486,15 +427,32 @@ vec4 default_post_processing(vec4 c);
 
 vec4 window_shader() {
     vec4 c = texelFetch(tex, ivec2(texcoord), 0);
+    float post_proc_alpha = default_post_processing(c).w; // <-- Use that to animate things when window is destroyed
     if (distance(texcoord, window_center) <=icon_radius) 
     {
-        pinhole_camera transformed_cam = setup_camera(window_cam);
-        c = get_pixel_through_camera(texcoord, transformed_cam);
+        float cam_offset = window_size.y*3;
+
+        float time_offset = pow((1-post_proc_alpha),2) ;
+        float time_cyclic = mod(4*(time/10000 - time_offset),2);
+        pinhole_camera rotate_around_origin = 
+            pinhole_camera(-cam_offset,
+                           vec3(0,-time_cyclic*PI-PI/2,0),
+                           vec3(cos(time_cyclic*PI)*window_size.y*0.4,
+                                0,
+                                sin(time_cyclic*PI)*window_size.y*0.4),
+                           vec3(1,1,1),
+                           vec3(0),
+                           vec3(0),
+                           vec3(0),
+                           vec3(0),
+                           vec3(0));
+        pinhole_camera transformed_cam = setup_camera(rotate_around_origin, post_proc_alpha);
+        c = get_pixel_through_camera(texcoord, transformed_cam, post_proc_alpha);
     }
     else if (c.x +c.y + c.z < 0.3)
     {
         c.w = 1;
         c = calc_opacity(c,texcoord);
     }
-    return c;
+    return default_post_processing(c);
 }
