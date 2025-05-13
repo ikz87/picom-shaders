@@ -26,6 +26,12 @@ uniform int shadow_intensity = 3; // Intensity level of the shadow effect (from 
 float window_diagonal = length(window_size); // Diagonal of the window
 int wss = min(window_size.x, window_size.y); // Window smallest side, useful when squaring windows
 
+uniform float flash_speed = 300.0; // Speed of the flash line in pixels per second
+uniform float bright_line_intensity = 0.9; // Max brightness added by the sharp line (can be > 1 for HDR look)
+uniform float bright_line_sharpness = 0.5; // Controls how narrow the bright line is (smaller = sharper)
+uniform float falloff_intensity = 0.3;     // Max brightness added by the falloff glow
+uniform float falloff_height = 80.0;       // How many pixels above the line the falloff extends
+
 // These shaders work by using a pinhole camera and raycasting
 // The window 3d objects will always be (somewhat) centered at (0, 0, 0)
 struct pinhole_camera
@@ -193,6 +199,104 @@ pinhole_camera setup_camera(pinhole_camera camera)
     // Return our set up camera
     return camera;
 }
+// Helper function for the RGB shift (chromatic aberration)
+vec2 curve(vec2 uv)
+{
+    uv = (uv - 0.5) * 2.0;
+    uv *= 1.1;    
+    uv.x *= 1.0 + pow((abs(uv.y) / 5.0), 2.0);
+    uv.y *= 1.0 + pow((abs(uv.x) / 4.0), 2.0);
+    uv = (uv / 2.0) + 0.5;
+    return uv;
+}
+
+
+vec4 apply_flash_effect(vec4 color, vec2 coords) {
+    // 1. Calculate the current vertical position of the flash line
+    //    Convert speed from pixels/sec to pixels/ms for use with 'time'
+    float flash_y = mod(time * (flash_speed / 1000.0), float(window_size.y));
+
+    // 2. Calculate the brightness contribution from the sharp bright line
+    float distance_from_line = abs(coords.y - flash_y);
+    // This creates a very sharp peak at distance 0, falling off quickly.
+    // The max value is bright_line_intensity.
+    // The '+ 1.0' prevents division by zero and normalizes the peak.
+    float bright_line_factor = bright_line_intensity / (pow(distance_from_line / bright_line_sharpness, 2.0) + 1.0);
+
+    // 3. Calculate the brightness contribution from the falloff (above the line)
+    float falloff_factor = 0.0;
+    float distance_above_line = flash_y - coords.y; // Positive if current pixel is above the line
+
+    if (distance_above_line > 0.0) {
+        // Use smoothstep for a gradual fade from falloff_intensity at the line (distance_above_line = 0)
+        // down to 0 brightness at falloff_height pixels above the line.
+        falloff_factor = falloff_intensity * (1.0 - smoothstep(0.0, falloff_height, distance_above_line));
+    }
+
+    // 4. Combine the effects and apply to the color (additive brightness)
+    float total_flash_brightness = bright_line_factor + falloff_factor;
+    color.rgb += vec3(total_flash_brightness);
+
+    // Optional: Clamp the result if you want to prevent colors going significantly above 1.0
+    // color.rgb = clamp(color.rgb, 0.0, 1.0); // Hard clamp
+    // color.rgb = min(color.rgb, vec3(1.5)); // Allow some over-brightening
+
+    return color;
+}
+
+// CRT effect shader
+vec4 crt_shader(vec2 coords)
+{
+    // Parameters - feel free to adjust these
+    float scanline_intensity = 0.125;      // How dark the scanlines are
+    float rgb_shift = 2.0;                 // How much RGB shifting occurs
+    float vignette_intensity = 0.2;        // How dark the corners get
+    float screen_curve = 0.5;             // How much screen curvature
+    
+    // Convert coords to UV space (0 to 1)
+    vec2 uv = coords / vec2(window_size);
+    
+    // Apply screen curvature
+    vec2 curved_uv = mix(uv, curve(uv), screen_curve);
+    
+    // If UV is outside bounds, return black
+    if (curved_uv.x < 0.0 || curved_uv.x > 1.0 || 
+        curved_uv.y < 0.0 || curved_uv.y > 1.0)
+        return vec4(0.0, 0.0, 0.0, 1.0);
+    
+    // Convert curved UV back to pixel coordinates
+    vec2 screen_pos = curved_uv * vec2(window_size);
+    
+    // Chromatic aberration
+    vec4 color;
+    color.r = texelFetch(tex, ivec2(screen_pos + vec2(rgb_shift, 0.0)), 0).r;
+    color.g = texelFetch(tex, ivec2(screen_pos), 0).g;
+    color.b = texelFetch(tex, ivec2(screen_pos - vec2(rgb_shift, 0.0)), 0).b;
+    color.a = 1.0;
+    
+    // Scanlines
+    float scanline = sin(screen_pos.y * 0.7) * 0.5 + 0.5;
+    color.rgb *= 1.0 - (scanline * scanline_intensity);
+    
+    // Vertical sync lines (more subtle)
+    float vertical_sync = sin(screen_pos.x * 2.0) * 0.5 + 0.5;
+    color.rgb *= 1.0 - (vertical_sync * scanline_intensity * 0.5);
+    
+    // Vignette (darker corners)
+    vec2 center_dist = curved_uv - vec2(0.5);
+    float vignette = 1.0 - (dot(center_dist, center_dist) * vignette_intensity);
+    color.rgb *= vignette;
+    
+    // Brightness and contrast adjustments
+    color.rgb *= 1.2;  // Brightness boost
+    color.rgb = pow(color.rgb, vec3(1.2)); // Contrast boost
+    
+    // Add subtle noise to simulate CRT noise
+    float noise = fract(sin(dot(curved_uv, vec2(12.9898, 78.233))) * 43758.5453);
+    color.rgb += (noise * 0.02 - 0.01); // Very subtle noise
+    
+    return color;
+}
 
 // Gets a pixel from the end of a ray projected to an axis
 vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector)
@@ -224,6 +328,8 @@ vec4 get_pixel_from_projection(float t, pinhole_camera camera, vec3 focal_vector
 
     // Fetch the pixel
     vec4 pixel = texelFetch(tex, ivec2(cam_coords), 0);
+    pixel = crt_shader(cam_coords);
+    pixel = apply_flash_effect(pixel, cam_coords);
     if (pixel.xyz == vec3(0))
     {
         return BASE_COLOR;
@@ -377,71 +483,6 @@ vec4 calc_opacity(vec4 color, vec2 coords)
 // 3) max-brightness clamping
 // 4) rounded corners
 vec4 default_post_processing(vec4 c);
-
-// Helper function for the RGB shift (chromatic aberration)
-vec2 curve(vec2 uv)
-{
-    uv = (uv - 0.5) * 2.0;
-    uv *= 1.1;    
-    uv.x *= 1.0 + pow((abs(uv.y) / 5.0), 2.0);
-    uv.y *= 1.0 + pow((abs(uv.x) / 4.0), 2.0);
-    uv = (uv / 2.0) + 0.5;
-    return uv;
-}
-
-// Main CRT effect shader
-vec4 crt_shader(vec4 pixel, vec2 coords)
-{
-    // Parameters - feel free to adjust these
-    float scanline_intensity = 0.125;      // How dark the scanlines are
-    float rgb_shift = 2.0;                 // How much RGB shifting occurs
-    float vignette_intensity = 0.2;        // How dark the corners get
-    float screen_curve = 0.5;             // How much screen curvature
-    
-    // Convert coords to UV space (0 to 1)
-    vec2 uv = coords / vec2(window_size);
-    
-    // Apply screen curvature
-    vec2 curved_uv = mix(uv, curve(uv), screen_curve);
-    
-    // If UV is outside bounds, return black
-    if (curved_uv.x < 0.0 || curved_uv.x > 1.0 || 
-        curved_uv.y < 0.0 || curved_uv.y > 1.0)
-        return vec4(0.0, 0.0, 0.0, 1.0);
-    
-    // Convert curved UV back to pixel coordinates
-    vec2 screen_pos = curved_uv * vec2(window_size);
-    
-    // Chromatic aberration
-    vec4 color;
-    color.r = texelFetch(tex, ivec2(screen_pos + vec2(rgb_shift, 0.0)), 0).r;
-    color.g = texelFetch(tex, ivec2(screen_pos), 0).g;
-    color.b = texelFetch(tex, ivec2(screen_pos - vec2(rgb_shift, 0.0)), 0).b;
-    color.a = 1.0;
-    
-    // Scanlines
-    float scanline = sin(screen_pos.y * 0.7) * 0.5 + 0.5;
-    color.rgb *= 1.0 - (scanline * scanline_intensity);
-    
-    // Vertical sync lines (more subtle)
-    float vertical_sync = sin(screen_pos.x * 2.0) * 0.5 + 0.5;
-    color.rgb *= 1.0 - (vertical_sync * scanline_intensity * 0.5);
-    
-    // Vignette (darker corners)
-    vec2 center_dist = curved_uv - vec2(0.5);
-    float vignette = 1.0 - (dot(center_dist, center_dist) * vignette_intensity);
-    color.rgb *= vignette;
-    
-    // Brightness and contrast adjustments
-    color.rgb *= 1.2;  // Brightness boost
-    color.rgb = pow(color.rgb, vec3(1.2)); // Contrast boost
-    
-    // Add subtle noise to simulate CRT noise
-    float noise = fract(sin(dot(curved_uv, vec2(12.9898, 78.233))) * 43758.5453);
-    color.rgb += (noise * 0.02 - 0.01); // Very subtle noise
-    
-    return color;
-}
 
 vec4 window_shader() {
     vec4 c = texelFetch(tex, ivec2(texcoord), 0);
