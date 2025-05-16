@@ -50,7 +50,6 @@ float opacity_threshold(float opacity)
 
 vec4 anim(float time) {
   vec4 c = texelFetch(tex, ivec2(texcoord), 0);
-  c = default_post_processing(c);
   return c;
 }
 
@@ -58,12 +57,14 @@ vec4 anim(float time) {
 // 1) fetch the specified pixel
 // 2) apply default post-processing
 vec4 window_shader() {
-    vec4 c = texelFetch(tex, ivec2(texcoord), 0);
-    c = default_post_processing(c);
-    float opacity = opacity_threshold(c.w);
-    if (opacity != 1.0)
-    {
-        c = anim(opacity);
-    }
-    return default_post_processing(c);
+  vec4 c = texelFetch(tex, ivec2(texcoord), 0);
+  c = default_post_processing(c);
+  float opacity = opacity_threshold(c.w);
+  if (opacity == 0.0)
+  {
+    return c;
+  }
+  vec4 anim_c = anim(opacity);
+  return default_post_processing(anim_c);
 }
+
