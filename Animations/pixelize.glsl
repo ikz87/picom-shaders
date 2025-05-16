@@ -28,10 +28,21 @@ a window is closed, effectively reversing the animations described here
 // 3) max-brightness clamping
 // 4) rounded corners
 vec4 default_post_processing(vec4 c);
+// Pseudo-random function
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+// Creates vertical scanlines
+float scanline(vec2 uv, float time) {
+    return sin(uv.y * 200.0 + time * 10.0) * 0.5 + 0.5;
+}
 
 vec4 anim(float time) {
-  vec4 c = texelFetch(tex, ivec2(texcoord), 0);
-  c = default_post_processing(c);
+// block size shrinks from 40→1
+  float block = mix(40.0, 1.0, time);
+  vec2 uvb = floor(texcoord / block) * block + block/2;
+  vec4 c = texelFetch(tex, ivec2(uvb), 0);
   return c;
 }
 
