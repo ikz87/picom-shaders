@@ -28,14 +28,24 @@ a window is closed, effectively reversing the animations described here
 // 3) max-brightness clamping
 // 4) rounded corners
 vec4 default_post_processing(vec4 c);
-// Pseudo-random function
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
 
-// Creates vertical scanlines
-float scanline(vec2 uv, float time) {
-    return sin(uv.y * 200.0 + time * 10.0) * 0.5 + 0.5;
+//  If you have semitransparent windows (like a terminal)
+// You can use the below function to add an opacity threshold where the
+// animation won't apply. For example, if you had your terminal
+// configured to have 0.8 opacity, you'd set the below variable to 0.8
+float max_opacity = 0.9;
+float opacity_threshold(float opacity)
+{
+  // if statement jic?
+  if (opacity >= max_opacity)
+  {
+    return 1.0;
+  }
+  else 
+  {
+    return min(1, opacity/max_opacity);
+  }
+
 }
 
 vec4 anim(float time) {
@@ -52,9 +62,10 @@ vec4 anim(float time) {
 vec4 window_shader() {
     vec4 c = texelFetch(tex, ivec2(texcoord), 0);
     c = default_post_processing(c);
-    if (c.w != 1.0)
+    float opacity = opacity_threshold(c.w);
+    if (opacity != 1.0)
     {
-        c = anim(c.w);
+        c = anim(opacity);
     }
     return default_post_processing(c);
 }
