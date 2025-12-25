@@ -12,3 +12,5 @@
     <td width="33%"><a href=https://github.com/ikz87/picom-shaders/wiki/Shader-gallery>Shader gallery</a></td>
   </tr>
 </table>
+
+Shader gallery is outdated. I'll update it when I have the chance
